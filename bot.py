@@ -1,17 +1,16 @@
+from math import comb
+
 import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 from config_reader import config
-
 from magic_filter import F
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from contextlib import suppress
 from aiogram.exceptions import TelegramBadRequest
-from math import comb
-from typing import Optional
-from aiogram.filters.callback_data import CallbackData
 
+
+from keyboards import get_keyboard_rolling, RollCallbackFactory
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,67 +28,8 @@ PULL_DEFAULT = {
 }
 
 
-class RollCallbackFactory(CallbackData, prefix="roll"):
-    action: str
-    value: Optional[int]
-
-
-def get_keyboard():
-    """Описание клавиатуры"""
-    builder = InlineKeyboardBuilder()
-    # dices
-    builder.button(text="2", callback_data=RollCallbackFactory(action="dices", value=2))
-    builder.button(text="3", callback_data=RollCallbackFactory(action="dices", value=3))
-    builder.button(text="4", callback_data=RollCallbackFactory(action="dices", value=4))
-    builder.button(text="5", callback_data=RollCallbackFactory(action="dices", value=5))
-    # skill
-    builder.button(
-        text="-2 SD", callback_data=RollCallbackFactory(action="skill", value=-2)
-    )
-    builder.button(
-        text="-1 SD", callback_data=RollCallbackFactory(action="skill", value=-1)
-    )
-    builder.button(
-        text="+1 SD", callback_data=RollCallbackFactory(action="skill", value=1)
-    )
-    builder.button(
-        text="+2 SD", callback_data=RollCallbackFactory(action="skill", value=2)
-    )
-    # motiv
-    builder.button(
-        text="-2 MD", callback_data=RollCallbackFactory(action="motive", value=-2)
-    )
-    builder.button(
-        text="-1 MD", callback_data=RollCallbackFactory(action="motive", value=-1)
-    )
-    builder.button(
-        text="+1 MD", callback_data=RollCallbackFactory(action="motive", value=1)
-    )
-    builder.button(
-        text="+2 MD", callback_data=RollCallbackFactory(action="motive", value=2)
-    )
-    # complexity
-    builder.button(
-        text="-2 C", callback_data=RollCallbackFactory(action="complexity", value=-2)
-    )
-    builder.button(
-        text="-1 C", callback_data=RollCallbackFactory(action="complexity", value=-1)
-    )
-    builder.button(
-        text="+1 C", callback_data=RollCallbackFactory(action="complexity", value=1)
-    )
-    builder.button(
-        text="+2 C", callback_data=RollCallbackFactory(action="complexity", value=2)
-    )
-    builder.button(
-        text="Закончить анализ", callback_data=RollCallbackFactory(action="stop")
-    )
-    builder.adjust(4)
-    return builder.as_markup()
-
-
 # TODO неверное общее вычесление с критическим успехом проверить
-def get_probility(dices: int, skill: int, motive: int, complexity: int):
+def get_probility(dices: int, skill: int, motive: int, complexity: int) -> tuple:
     """Подсчет вероятностей успеха"""
     success = (skill + motive) / DICE
     crit_succes = skill / DICE
@@ -118,7 +58,7 @@ async def update_prob_text(message: types.Message, new_pull: dict[str, int]):
             f"с навыком [{skill}] и мотивом [{motiv}] со "
             f"сложностью [{complexity}]\n"
             f"равна {probility}%, со специализацией {probability_critical}%",
-            reply_markup=get_keyboard(),
+            reply_markup=get_keyboard_rolling(),
         )
 
 
@@ -132,7 +72,7 @@ async def cmd_numbers(message: types.Message):
         f"Вероятность успеха при пулле из [2] кубов\n"
         f"с навыком [4] и мотивом [4] со сложностью [1]\n"
         f"равна {probility}%, со специализацией {probability_critical}%",
-        reply_markup=get_keyboard(),
+        reply_markup=get_keyboard_rolling(),
     )
 
 
